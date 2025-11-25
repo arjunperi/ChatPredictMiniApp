@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(cuid())
+  telegramId    String        @unique
+  username      String?
+  firstName     String?
+  lastName      String?
+  tokenBalance  Int           @default(1000)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  bets          Bet[]
+  marketsCreated Market[]     @relation("MarketCreator")
+  transactions  Transaction[]
+
+  @@index([telegramId])
+  @@index([createdAt])
+}
+
+model Market {
+  id          String       @id @default(cuid())
+  question    String
+  creatorId   String
+  creator     User         @relation("MarketCreator", fields: [creatorId], references: [id])
+  
+  // LMSR state
+  sharesYes   Float        @default(0)
+  sharesNo    Float        @default(0)
+  liquidity   Float        @default(100) // b parameter
+  
+  // Metadata
+  status      MarketStatus @default(ACTIVE)
+  resolution  Resolution?
+  resolvedAt  DateTime?
+  closesAt    DateTime?    // Auto-close date
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  bets        Bet[]
+  
+  // Telegram context
+  chatId      String
+  messageId   String?
+
+  @@index([chatId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([closesAt])
+}
+
+enum MarketStatus {
+  ACTIVE
+  CLOSED
+  RESOLVED
+  CANCELLED
+}
+
+enum Resolution {
+  YES
+  NO
+}
+
+model Bet {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  marketId    String
+  market      Market    @relation(fields: [marketId], references: [id])
+  
+  outcome     Outcome   // YES or NO
+  amount      Int       // tokens spent
+  shares      Float     // shares received
+  
+  // Price at time of bet
+  priceAtBet  Float
+  
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([marketId])
+  @@index([createdAt])
+}
+
+enum Outcome {
+  YES
+  NO
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  
+  type        TransactionType
+  amount      Int             // can be negative
+  marketId    String?         // if related to a market
+  betId       String?         // if related to a bet
+  
+  description String
+  createdAt   DateTime        @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum TransactionType {
+  INITIAL_GRANT
+  BET_PLACED
+  SHARES_SOLD
+  BET_WON
+  BET_LOST
+  MARKET_RESOLVED
+}

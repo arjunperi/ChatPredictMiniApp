@@ -1,0 +1,110 @@
+'use client';
+
+import { useMarket } from '@/hooks/use-markets';
+import { useBets } from '@/hooks/use-bets';
+import { MarketDetail } from '@/components/markets/market-detail';
+import { TradingPanel } from '@/components/trading/trading-panel';
+import { ResolveModal } from '@/components/markets/resolve-modal';
+import { LoadingPage } from '@/components/ui/loading';
+import { useBet } from '@/hooks/use-bet';
+import { useSell } from '@/hooks/use-sell';
+import { use } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+
+function getUserBalance(): Promise<number> {
+  // TODO: Replace with actual API call
+  return Promise.resolve(1000);
+}
+
+export default function MarketDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const { data: market, isLoading: marketLoading, error } = useMarket(id);
+  const { data: bets } = useBets(id);
+  const { data: userBalance } = useQuery({
+    queryKey: ['user-balance'],
+    queryFn: getUserBalance,
+  });
+
+  const [showResolveModal, setShowResolveModal] = useState(false);
+  const betMutation = useBet();
+  const sellMutation = useSell();
+
+  const handleBuy = async (outcome: 'YES' | 'NO', amount: number) => {
+    if (!market) return;
+    await betMutation.mutateAsync({
+      marketId: market.id,
+      outcome,
+      amount,
+    });
+  };
+
+  const handleSell = async (betId: string, shares?: number) => {
+    await sellMutation.mutateAsync({ betId, shares });
+  };
+
+  // TODO: Check if current user is the creator
+  const isCreator = false;
+
+  if (marketLoading) {
+    return <LoadingPage />;
+  }
+
+  if (error || !market) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-red-600/20 border border-red-600/50 rounded-lg p-6 text-red-400">
+          <h2 className="text-xl font-bold mb-2">Market not found</h2>
+          <p>The market you're looking for doesn't exist or has been removed.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter user's bets for this market
+  const userBets = bets?.filter((bet) => bet.marketId === id) || [];
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {isCreator && market.status === 'ACTIVE' && (
+        <div className="mb-6">
+          <button
+            onClick={() => setShowResolveModal(true)}
+            className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            Resolve Market
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <MarketDetail market={market} />
+        </div>
+        <div>
+          <TradingPanel
+            market={market}
+            userBets={userBets}
+            userBalance={userBalance || 0}
+            onBuy={handleBuy}
+            onSell={handleSell}
+            isLoading={betMutation.isPending || sellMutation.isPending}
+          />
+        </div>
+      </div>
+
+      {showResolveModal && (
+        <ResolveModal
+          market={market}
+          isOpen={showResolveModal}
+          onClose={() => setShowResolveModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
