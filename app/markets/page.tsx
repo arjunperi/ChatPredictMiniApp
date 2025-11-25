@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useMarkets } from '@/hooks/use-markets';
 import { MarketCard } from '@/components/market-card';
@@ -11,6 +11,7 @@ import { Loading, LoadingPage } from '@/components/ui/loading';
 import { SkeletonList } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Market } from '@/types/market';
+import { useTelegramContext } from '@/lib/telegram/context';
 
 function filterAndSortMarkets(
   markets: Market[],
@@ -52,17 +53,19 @@ function filterAndSortMarkets(
   return filtered;
 }
 
-export default function MarketsPage() {
+function MarketsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const createParam = searchParams.get('create');
+  const { chatId } = useTelegramContext();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [status, setStatus] = useState(searchParams.get('status') || '');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const { data: markets, isLoading, error } = useMarkets();
+  // Filter markets by chatId if available (group scoping)
+  const { data: markets, isLoading, error } = useMarkets(chatId || undefined);
 
   // Show create modal if create param is present
   useEffect(() => {
@@ -103,7 +106,14 @@ export default function MarketsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-white">Markets</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-white">Markets</h1>
+          {chatId && (
+            <p className="text-sm text-slate-400 mt-1">
+              Showing markets for this group
+            </p>
+          )}
+        </div>
         <button
           onClick={() => setShowCreateModal(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
@@ -168,6 +178,18 @@ export default function MarketsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MarketsPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SkeletonList count={5} />
+      </div>
+    }>
+      <MarketsPageContent />
+    </Suspense>
   );
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
+import { TelegramContextProvider } from '@/lib/telegram/context';
 
 export function TelegramProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -47,5 +48,9 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  return <>{children}</>;
+  return (
+    <TelegramContextProvider>
+      {children}
+    </TelegramContextProvider>
+  );
 }

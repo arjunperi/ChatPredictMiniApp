@@ -5,6 +5,7 @@ import { MarketForm } from './market-form';
 import { CreateMarketInput } from '@/lib/validation/schemas';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/toast';
+import { useTelegramContext } from '@/lib/telegram/context';
 
 interface CreateMarketModalProps {
   isOpen: boolean;
@@ -15,12 +16,16 @@ export function CreateMarketModal({ isOpen, onClose }: CreateMarketModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { success, error: showError } = useToast();
+  const { chatId, userId } = useTelegramContext();
 
   if (!isOpen) return null;
 
   const handleSubmit = async (data: CreateMarketInput) => {
     setIsLoading(true);
     try {
+      // Use chatId from context, or fallback to user-specific chatId
+      const finalChatId = chatId || (userId ? `user-${userId}` : null);
+      
       const response = await fetch('/api/markets', {
         method: 'POST',
         headers: {
@@ -30,6 +35,7 @@ export function CreateMarketModal({ isOpen, onClose }: CreateMarketModalProps) {
           question: data.question,
           closesAt: data.closesAt || null,
           liquidity: data.liquidity || 100,
+          chatId: finalChatId, // Include chatId for group scoping
         }),
       });
 

@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { MarketsResponse, MarketResponse } from '@/types/api';
 
-export function useMarkets(chatId?: string, status?: string) {
+export function useMarkets(chatId?: string | null, status?: string) {
   return useQuery({
     queryKey: ['markets', chatId, status],
     queryFn: async () => {
@@ -18,6 +18,7 @@ export function useMarkets(chatId?: string, status?: string) {
       const data: MarketsResponse = await response.json();
       return data.markets;
     },
+    enabled: true, // Always enabled, chatId can be null/undefined
   });
 }
 

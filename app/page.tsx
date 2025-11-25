@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { Loading } from '@/components/ui/loading';
+import { useTelegramContext } from '@/lib/telegram/context';
 
 // TODO: Replace with actual API call once user context is available
 function getUserStats() {
@@ -17,8 +18,11 @@ function getUserStats() {
   });
 }
 
-function getMarketStats() {
-  return fetch('/api/markets')
+function getMarketStats(chatId?: string | null) {
+  const params = new URLSearchParams();
+  if (chatId) params.append('chatId', chatId);
+  
+  return fetch(`/api/markets?${params}`)
     .then((res) => res.json())
     .then((data) => ({
       totalMarkets: data.markets?.length || 0,
@@ -27,14 +31,16 @@ function getMarketStats() {
 }
 
 export default function Home() {
+  const { chatId } = useTelegramContext();
+  
   const { data: userStats, isLoading: userLoading } = useQuery({
     queryKey: ['user-stats'],
     queryFn: getUserStats,
   });
 
   const { data: marketStats, isLoading: marketLoading } = useQuery({
-    queryKey: ['market-stats'],
-    queryFn: getMarketStats,
+    queryKey: ['market-stats', chatId],
+    queryFn: () => getMarketStats(chatId),
   });
 
   if (userLoading || marketLoading) {
@@ -55,6 +61,11 @@ export default function Home() {
         <p className="text-slate-400">
           Create and trade prediction markets in Telegram groups
         </p>
+        {chatId && (
+          <div className="mt-2 inline-block bg-blue-600/20 border border-blue-600/50 rounded-lg px-3 py-1 text-sm text-blue-300">
+            📍 Group Mode: Markets scoped to this group
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}
