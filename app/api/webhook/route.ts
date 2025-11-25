@@ -370,7 +370,9 @@ export async function POST(request: NextRequest) {
 
     // Verify webhook secret if provided
     const secretHeader = request.headers.get('x-telegram-bot-api-secret-token');
-    if (TELEGRAM_WEBHOOK_SECRET && secretHeader !== TELEGRAM_WEBHOOK_SECRET) {
+    // Only check secret if it's configured (not 'default_secret')
+    if (TELEGRAM_WEBHOOK_SECRET && TELEGRAM_WEBHOOK_SECRET !== 'default_secret' && secretHeader !== TELEGRAM_WEBHOOK_SECRET) {
+      console.warn('Webhook secret mismatch. Header:', secretHeader, 'Expected:', TELEGRAM_WEBHOOK_SECRET);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
