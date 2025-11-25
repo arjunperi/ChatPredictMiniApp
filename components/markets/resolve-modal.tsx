@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Market } from '@/types/market';
 import { useToast } from '@/components/ui/toast';
 import { useRouter } from 'next/navigation';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
 interface ResolveModalProps {
   market: Market;
@@ -33,9 +34,7 @@ export function ResolveModal({
 
       const response = await fetch(`/api/markets/${market.id}/resolve`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getTelegramAuthHeaders(),
         body: JSON.stringify({
           resolution,
           resolverTelegramId,

@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/toast';
 import { Market } from '@/types/market';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
 interface PlaceBetParams {
   marketId: string;
@@ -18,9 +19,7 @@ export function useBet() {
     mutationFn: async ({ marketId, outcome, amount }: PlaceBetParams) => {
       const response = await fetch('/api/bets', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getTelegramAuthHeaders(),
         body: JSON.stringify({
           marketId,
           outcome,

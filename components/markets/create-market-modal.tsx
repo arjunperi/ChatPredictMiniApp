@@ -6,6 +6,7 @@ import { CreateMarketInput } from '@/lib/validation/schemas';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/toast';
 import { useTelegramContext } from '@/lib/telegram/context';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
 interface CreateMarketModalProps {
   isOpen: boolean;
@@ -28,9 +29,7 @@ export function CreateMarketModal({ isOpen, onClose }: CreateMarketModalProps) {
       
       const response = await fetch('/api/markets', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getTelegramAuthHeaders(),
         body: JSON.stringify({
           question: data.question,
           closesAt: data.closesAt || null,

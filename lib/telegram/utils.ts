@@ -16,6 +16,30 @@ export function getChatIdFromUrl(): string | null {
  * Get chatId from Telegram WebApp start_param
  * This is set when the Mini App is opened from a group via a button
  */
+/**
+ * Get Telegram initData string for API authentication
+ */
+export function getTelegramInitData(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.Telegram?.WebApp?.initData || null;
+}
+
+/**
+ * Get headers with Telegram authentication for API requests
+ */
+export function getTelegramAuthHeaders(): HeadersInit {
+  const initData = getTelegramInitData();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (initData) {
+    headers['X-Telegram-Init-Data'] = initData;
+  }
+  
+  return headers;
+}
+
 export function getChatIdFromStartParam(): string | null {
   if (typeof window === 'undefined') return null;
   const tg = window.Telegram?.WebApp;

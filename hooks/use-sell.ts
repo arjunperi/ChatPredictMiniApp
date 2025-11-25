@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/toast';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
 interface SellSharesParams {
   betId: string;
@@ -16,9 +17,7 @@ export function useSell() {
     mutationFn: async ({ betId, shares }: SellSharesParams) => {
       const response = await fetch('/api/bets/sell', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getTelegramAuthHeaders(),
         body: JSON.stringify({
           betId,
           shares,
