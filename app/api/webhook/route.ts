@@ -6,10 +6,12 @@ import { MarketStatus } from '@prisma/client';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || 'default_secret';
 // Use URL exactly as configured in @BotFather Main Mini App
-// The Main Mini App was configured WITHOUT trailing slash, so use that exact format
-const MINI_APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.vercel.app').replace(/\/$/, '');
-// For web_app buttons, use the exact URL that was configured (no trailing slash)
-const WEB_APP_URL = MINI_APP_URL;
+// @BotFather adds a trailing slash, so we need to match it
+// Menu button uses trailing slash, so web_app buttons should too
+const BASE_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.vercel.app').replace(/\/$/, '');
+const MINI_APP_URL = BASE_URL;
+// For web_app buttons, add trailing slash to match @BotFather configuration
+const WEB_APP_URL = `${BASE_URL}/`;
 const BOT_USERNAME = 'APChatPredictBot'; // Your bot username
 
 /**
@@ -78,8 +80,13 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
               web_app: { url: buttonUrl }
             };
           }
-          // Handle regular URL buttons
+          // Handle regular URL buttons (including deep links)
           if (button.url) {
+            // Deep links (t.me) should always be allowed
+            if (button.url.startsWith('https://t.me/')) {
+              console.log('Deep link button detected:', button.url);
+              return button;
+            }
             if (!button.url.startsWith('https://')) {
               console.warn(`Invalid URL: ${button.url}`);
               return { text: button.text };
@@ -142,30 +149,23 @@ Create and trade prediction markets directly in this group!
 
 <b>Or tap the button below to open the Mini App:</b>`;
 
-  // Try web_app button first (requires Mini App configured)
-  // Fallback to URL if web_app not configured
-  const replyMarkup = {
-    inline_keyboard: [[
-      {
-        text: '🚀 Open ChatPredict',
-        web_app: {
-          url: WEB_APP_URL
-        }
-      }]]
-  };
-
-  // Use Mini App short_name deep link (configured as "mini3" in @BotFather)
+  // Use deep link format - this was the working solution before Vercel
   // Format: https://t.me/BOT_USERNAME/short_name
-  // This opens the Mini App directly, matching the "Open App" button behavior
-  const telegramDeepLink = `https://t.me/${BOT_USERNAME}/mini3`;
-  const urlMarkup = {
+  // The short_name "PredictAP" was configured when creating Mini App in @BotFather
+  // Deep links work in inline keyboards when properly configured
+  const shortName = 'PredictAP';
+  const telegramDeepLink = `https://t.me/${BOT_USERNAME}/${shortName}`;
+  
+  console.log('Using deep link for inline keyboard button:', telegramDeepLink);
+  const replyMarkup = {
     inline_keyboard: [[
       {
         text: '🚀 Open ChatPredict',
         url: telegramDeepLink
       }]]
   };
-  return await sendTelegramMessage(chatId, text, urlMarkup);
+
+  return await sendTelegramMessage(chatId, text, replyMarkup);
 }
 
 /**
@@ -368,6 +368,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const update: TelegramUpdate = body;
 
+    console.log('Webhook received update:', JSON.stringify(update, null, 2));
+
     // Webhook secret check disabled - Telegram webhooks work without it
     // All requests are allowed through
     // If you need secret protection later, uncomment and configure TELEGRAM_WEBHOOK_SECRET
@@ -388,10 +390,13 @@ export async function POST(request: NextRequest) {
       const username = message.from.username || undefined;
       const firstName = message.from.first_name || 'User';
 
+      console.log(`Processing message: chatId=${chatId}, userId=${userId}, text="${text}", chatType=${message.chat.type}`);
+
       // Only process commands in groups or private chats
       if (message.chat.type === 'group' || message.chat.type === 'supergroup' || message.chat.type === 'private') {
         // Handle commands
         if (text.startsWith('/start')) {
+          console.log('Handling /start command');
           await handleStart(chatId, userId, username, firstName);
         } else if (text.startsWith('/create_market')) {
           await handleCreateMarket(chatId, userId, username, firstName, text);
@@ -401,9 +406,15 @@ export async function POST(request: NextRequest) {
           await handleBalance(chatId, userId);
         } else if (text.startsWith('/help')) {
           await handleHelp(chatId);
+        } else {
+          console.log(`Message ignored (not a command): "${text}"`);
         }
         // Ignore other messages
+      } else {
+        console.log(`Message ignored (wrong chat type): ${message.chat.type}`);
       }
+    } else {
+      console.log('Update has no message field');
     }
 
     return NextResponse.json({ ok: true });
