@@ -5,7 +5,26 @@ import { MarketStatus } from '@prisma/client';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || 'default_secret';
-const MINI_APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.vercel.app';
+// Use URL exactly as configured in @BotFather Main Mini App
+// The Main Mini App was configured WITHOUT trailing slash, so use that exact format
+const MINI_APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.vercel.app').replace(/\/$/, '');
+// For web_app buttons, use the exact URL that was configured (no trailing slash)
+const WEB_APP_URL = MINI_APP_URL;
+const BOT_USERNAME = 'APChatPredictBot'; // Your bot username
+
+/**
+ * Generate Telegram Mini App link
+ * For fallback when buttons fail, use the direct HTTPS URL
+ * Telegram will open it in Mini App if configured correctly in @BotFather
+ */
+function getTelegramMiniAppLink(path: string = ''): string {
+  // Use the actual web app URL - Telegram opens it in Mini App when clicked
+  // This only works if the URL is configured in @BotFather
+  if (path) {
+    return `${MINI_APP_URL}/${path}`;
+  }
+  return MINI_APP_URL;
+}
 
 interface TelegramUpdate {
   update_id: number;
@@ -42,18 +61,30 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
   
   // Only add reply_markup if it's valid and not empty
   if (replyMarkup && replyMarkup.inline_keyboard && Array.isArray(replyMarkup.inline_keyboard) && replyMarkup.inline_keyboard.length > 0) {
-    // Validate web_app URLs before sending
+    // Validate button format (supports both url and web_app buttons)
     const validatedMarkup = {
       inline_keyboard: replyMarkup.inline_keyboard.map((row: any[]) => 
         row.map((button: any) => {
-          if (button.web_app && button.web_app.url) {
-            // Ensure URL is valid HTTPS
-            const buttonUrl = button.web_app.url;
-            if (!buttonUrl.startsWith('https://')) {
-              console.warn(`Invalid web_app URL (must be HTTPS): ${buttonUrl}`);
-              // Remove web_app if URL is invalid
+          // Handle web_app buttons (requires Mini App configured in @BotFather)
+          if (button.web_app) {
+            const buttonUrl = button.web_app.url || button.web_app;
+            if (!buttonUrl || typeof buttonUrl !== 'string' || !buttonUrl.startsWith('https://')) {
+              console.warn(`Invalid web_app URL: ${buttonUrl}`);
+              // Fallback to regular URL button
+              return { text: button.text, url: buttonUrl || MINI_APP_URL };
+            }
+            return {
+              text: button.text,
+              web_app: { url: buttonUrl }
+            };
+          }
+          // Handle regular URL buttons
+          if (button.url) {
+            if (!button.url.startsWith('https://')) {
+              console.warn(`Invalid URL: ${button.url}`);
               return { text: button.text };
             }
+            return button;
           }
           return button;
         })
@@ -61,6 +92,9 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
     };
     payload.reply_markup = validatedMarkup;
   }
+  
+  // Log payload for debugging
+  console.log('Sending message with payload:', JSON.stringify(payload, null, 2));
   
   const response = await fetch(url, {
     method: 'POST',
@@ -75,7 +109,9 @@ async function sendTelegramMessage(chatId: number, text: string, replyMarkup?: a
     throw new Error(`Telegram API error: ${error}`);
   }
 
-  return response.json();
+  const result = await response.json();
+  console.log('Message sent successfully:', result.ok);
+  return result;
 }
 
 /**
@@ -106,26 +142,30 @@ Create and trade prediction markets directly in this group!
 
 <b>Or tap the button below to open the Mini App:</b>`;
 
-  // Temporarily send without button to test webhook
-  // TODO: Fix button format and re-enable
+  // Try web_app button first (requires Mini App configured)
+  // Fallback to URL if web_app not configured
   const replyMarkup = {
     inline_keyboard: [[
       {
         text: '🚀 Open ChatPredict',
         web_app: {
-          url: MINI_APP_URL
+          url: WEB_APP_URL
         }
       }]]
   };
 
-  // Send message (will try with button, fallback to text only if button fails)
-  try {
-    return await sendTelegramMessage(chatId, text, replyMarkup);
-  } catch (error: any) {
-    // If button fails, send text only
-    console.warn('Button failed, sending text only:', error.message);
-    return await sendTelegramMessage(chatId, `${text}\n\nOpen Mini App: ${MINI_APP_URL}`, undefined);
-  }
+  // Use Mini App short_name deep link (configured as "mini3" in @BotFather)
+  // Format: https://t.me/BOT_USERNAME/short_name
+  // This opens the Mini App directly, matching the "Open App" button behavior
+  const telegramDeepLink = `https://t.me/${BOT_USERNAME}/mini3`;
+  const urlMarkup = {
+    inline_keyboard: [[
+      {
+        text: '🚀 Open ChatPredict',
+        url: telegramDeepLink
+      }]]
+  };
+  return await sendTelegramMessage(chatId, text, urlMarkup);
 }
 
 /**
@@ -170,7 +210,7 @@ async function handleCreateMarket(
       null
     );
 
-    const marketUrl = `${MINI_APP_URL}/markets/${market.id}`;
+    const marketUrl = `${WEB_APP_URL}/markets/${market.id}`;
     
     const responseText = `✅ <b>Market Created!</b>
 
@@ -178,6 +218,7 @@ async function handleCreateMarket(
 
 Tap the button below to trade:`;
 
+    // Use web_app button - opens Mini App directly in Telegram
     const replyMarkup = {
       inline_keyboard: [[
         {
@@ -188,12 +229,7 @@ Tap the button below to trade:`;
         }]]
     };
 
-    try {
-      return await sendTelegramMessage(chatId, responseText, replyMarkup);
-    } catch (error: any) {
-      console.warn('Button failed, sending text only:', error.message);
-      return await sendTelegramMessage(chatId, `${responseText}\n\nTrade: ${marketUrl}`, undefined);
-    }
+    return await sendTelegramMessage(chatId, responseText, replyMarkup);
   } catch (error: any) {
     console.error('Error creating market:', error);
     return sendTelegramMessage(
@@ -237,17 +273,12 @@ async function handleMarkets(chatId: number) {
         {
           text: '🚀 View All Markets',
           web_app: {
-            url: `${MINI_APP_URL}/markets`
+            url: `${WEB_APP_URL}/markets`
           }
         }]]
     };
 
-    try {
-      return await sendTelegramMessage(chatId, text, replyMarkup);
-    } catch (error: any) {
-      console.warn('Button failed, sending text only:', error.message);
-      return await sendTelegramMessage(chatId, `${text}\n\nView: ${MINI_APP_URL}/markets`, undefined);
-    }
+    return await sendTelegramMessage(chatId, text, replyMarkup);
   } catch (error: any) {
     console.error('Error fetching markets:', error);
     return sendTelegramMessage(
@@ -284,17 +315,12 @@ Tap below to view your full portfolio:`;
         {
           text: '💼 View Portfolio',
           web_app: {
-            url: `${MINI_APP_URL}/portfolio`
+            url: `${WEB_APP_URL}/portfolio`
           }
         }]]
     };
 
-    try {
-      return await sendTelegramMessage(chatId, text, replyMarkup);
-    } catch (error: any) {
-      console.warn('Button failed, sending text only:', error.message);
-      return await sendTelegramMessage(chatId, `${text}\n\nView: ${MINI_APP_URL}/portfolio`, undefined);
-    }
+    return await sendTelegramMessage(chatId, text, replyMarkup);
   } catch (error: any) {
     console.error('Error fetching balance:', error);
     return sendTelegramMessage(
@@ -326,17 +352,12 @@ Tap the button below to open the full Mini App with all features!`;
       {
         text: '🚀 Open ChatPredict Mini App',
         web_app: {
-          url: MINI_APP_URL
+          url: WEB_APP_URL
         }
       }]]
   };
 
-  try {
-    return await sendTelegramMessage(chatId, text, replyMarkup);
-  } catch (error: any) {
-    console.warn('Button failed, sending text only:', error.message);
-    return await sendTelegramMessage(chatId, `${text}\n\nOpen: ${MINI_APP_URL}`, undefined);
-  }
+  return await sendTelegramMessage(chatId, text, replyMarkup);
 }
 
 /**
@@ -356,11 +377,18 @@ export async function POST(request: NextRequest) {
     // Handle message updates
     if (update.message) {
       const { message } = update;
+      
+      // Validate required fields
+      if (!message.from || !message.chat) {
+        console.warn('Invalid message format:', JSON.stringify(message, null, 2));
+        return NextResponse.json({ ok: true }); // Ignore invalid messages
+      }
+      
       const chatId = message.chat.id;
       const userId = message.from.id;
       const text = message.text || '';
-      const username = message.from.username;
-      const firstName = message.from.first_name;
+      const username = message.from.username || undefined;
+      const firstName = message.from.first_name || 'User';
 
       // Only process commands in groups or private chats
       if (message.chat.type === 'group' || message.chat.type === 'supergroup' || message.chat.type === 'private') {
