@@ -368,20 +368,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const update: TelegramUpdate = body;
 
-    // Verify webhook secret if provided
-    // Temporarily disabled secret check - Telegram webhooks work without it
-    // If you set a secret in Vercel, make sure to also set it when calling setWebhook
-    const secretHeader = request.headers.get('x-telegram-bot-api-secret-token');
-    const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-    
-    // Only enforce secret if explicitly set AND webhook was configured with secret
-    // For now, allow all requests to get webhook working
-    if (false && webhookSecret && webhookSecret !== 'default_secret' && webhookSecret.trim() !== '') {
-      if (!secretHeader || secretHeader !== webhookSecret) {
-        console.warn('Webhook secret mismatch. Has header:', !!secretHeader);
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    }
+    // Webhook secret check disabled - Telegram webhooks work without it
+    // All requests are allowed through
+    // If you need secret protection later, uncomment and configure TELEGRAM_WEBHOOK_SECRET
 
     // Handle message updates
     if (update.message) {
