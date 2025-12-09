@@ -98,25 +98,33 @@ export async function getMarkets(filters?: {
 }) {
   const { chatId, status, limit = 50, offset = 0 } = filters || {};
 
-  const markets = await prisma.market.findMany({
-    where: {
-      ...(chatId && { chatId }),
-      ...(status && { status }),
-    },
-    include: {
-      creator: true,
-      _count: {
-        select: { bets: true },
+  try {
+    console.log('[getMarkets] Querying database with filters:', { chatId, status, limit, offset });
+    
+    const markets = await prisma.market.findMany({
+      where: {
+        ...(chatId && { chatId }),
+        ...(status && { status }),
       },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: limit,
-    skip: offset,
-  });
+      include: {
+        creator: true,
+        _count: {
+          select: { bets: true },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: limit,
+      skip: offset,
+    });
 
-  return markets;
+    console.log('[getMarkets] Query successful, found', markets.length, 'markets');
+    return markets;
+  } catch (error) {
+    console.error('[getMarkets] Database query failed:', error);
+    throw error;
+  }
 }
 
 /**
