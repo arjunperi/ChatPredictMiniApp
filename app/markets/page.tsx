@@ -93,10 +93,23 @@ function MarketsPageContent() {
   }
 
   if (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[MarketsPage] Error:', error);
+    
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-red-600/20 border border-red-600/50 rounded-lg p-4 text-red-400">
-          Error loading markets. Please try again.
+          <h3 className="font-bold mb-2">Error loading markets</h3>
+          <p className="text-sm mb-2">{errorMessage}</p>
+          <p className="text-xs text-red-500/70 mb-3">
+            Check browser console or Vercel logs for details.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
