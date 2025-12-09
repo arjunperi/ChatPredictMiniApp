@@ -34,7 +34,7 @@ export function useBet() {
 
       return response.json();
     },
-    onMutate: async ({ marketId }) => {
+    onMutate: async ({ marketId, amount }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['market', marketId] });
       await queryClient.cancelQueries({ queryKey: ['markets'] });
@@ -43,8 +43,14 @@ export function useBet() {
       // Snapshot previous values
       const previousMarket = queryClient.getQueryData(['market', marketId]);
       const previousMarkets = queryClient.getQueryData(['markets']);
+      const previousBalance = queryClient.getQueryData<number>(['user-balance']);
 
-      return { previousMarket, previousMarkets };
+      // Optimistically update balance (will be corrected by refetch)
+      if (previousBalance !== undefined) {
+        queryClient.setQueryData(['user-balance'], previousBalance - amount);
+      }
+
+      return { previousMarket, previousMarkets, previousBalance };
     },
     onError: (err: Error, variables, context) => {
       // Rollback on error
@@ -54,14 +60,24 @@ export function useBet() {
       if (context?.previousMarkets) {
         queryClient.setQueryData(['markets'], context.previousMarkets);
       }
+      if (context?.previousBalance !== undefined) {
+        queryClient.setQueryData(['user-balance'], context.previousBalance);
+      }
       showError(err.message);
     },
     onSuccess: (data, variables) => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['market', variables.marketId] });
       queryClient.invalidateQueries({ queryKey: ['markets'] });
-      queryClient.invalidateQueries({ queryKey: ['user-balance'] });
       queryClient.invalidateQueries({ queryKey: ['bets', variables.marketId] });
+      
+      // Force immediate refetch of balance to get accurate value from server
+      queryClient.refetchQueries({ queryKey: ['user-balance'] });
+      
+      // Update balance optimistically with server response if available
+      if (data?.newBalance !== undefined) {
+        queryClient.setQueryData(['user-balance'], data.newBalance);
+      }
       
       success(`Bet placed successfully!`);
     },

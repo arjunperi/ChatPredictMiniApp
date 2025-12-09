@@ -108,6 +108,13 @@ export async function POST(request: NextRequest) {
         throw new Error('User not found');
       }
 
+      console.log('[Bet API] User balance check:', {
+        userId: user.id,
+        telegramId: userTelegramId,
+        currentBalance: currentUser.tokenBalance,
+        requestedAmount: amount,
+      });
+
       // 3. Calculate shares using LMSR with locked market state
       const lmsr = new LMSR(market.liquidity);
       const lmsrResult =
@@ -115,9 +122,18 @@ export async function POST(request: NextRequest) {
           ? lmsr.buyYes(market.sharesYes, market.sharesNo, amount)
           : lmsr.buyNo(market.sharesYes, market.sharesNo, amount);
 
-      // 4. Verify user has enough tokens for the actual cost
+      // 4. Verify user has enough tokens for the actual cost that will be deducted
+      // Check against lmsrResult.cost (the actual amount that will be deducted)
+      // This ensures consistency between check and deduction
+      console.log('[Bet API] Cost calculation:', {
+        requestedAmount: amount,
+        calculatedCost: lmsrResult.cost,
+        currentBalance: currentUser.tokenBalance,
+        sufficient: currentUser.tokenBalance >= lmsrResult.cost,
+      });
+
       if (currentUser.tokenBalance < lmsrResult.cost) {
-        throw new Error('Insufficient tokens');
+        throw new Error(`Insufficient tokens. Balance: ${currentUser.tokenBalance}, Required: ${lmsrResult.cost}`);
       }
 
       // 5. Create bet
@@ -133,7 +149,7 @@ export async function POST(request: NextRequest) {
       });
 
       // 6. Update user balance
-      await tx.user.update({
+      const updatedUser = await tx.user.update({
         where: { id: user.id },
         data: {
           tokenBalance: { decrement: lmsrResult.cost },
@@ -164,7 +180,7 @@ export async function POST(request: NextRequest) {
         return {
           bet: newBet,
           lmsrResult,
-          newBalance: currentUser.tokenBalance - lmsrResult.cost,
+          newBalance: updatedUser.tokenBalance,
         };
       }, {
         isolationLevel: 'Serializable', // Strongest isolation - prevents race conditions

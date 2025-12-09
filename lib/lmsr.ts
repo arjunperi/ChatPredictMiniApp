@@ -72,8 +72,12 @@ export class LMSR {
     const costAfter = this.cost(newQYes, qNo);
     const actualCost = costAfter - costBefore;
 
+    // Cap the cost at the input tokens amount to prevent rounding from exceeding it
+    const roundedCost = Math.round(actualCost);
+    const cappedCost = Math.min(roundedCost, tokens);
+
     return {
-      cost: Math.round(actualCost),
+      cost: cappedCost,
       shares: bestShares,
       newQYes,
       newQNo: qNo,
@@ -120,8 +124,12 @@ export class LMSR {
     const costAfter = this.cost(qYes, newQNo);
     const actualCost = costAfter - costBefore;
 
+    // Cap the cost at the input tokens amount to prevent rounding from exceeding it
+    const roundedCost = Math.round(actualCost);
+    const cappedCost = Math.min(roundedCost, tokens);
+
     return {
-      cost: Math.round(actualCost),
+      cost: cappedCost,
       shares: bestShares,
       newQYes: qYes,
       newQNo,

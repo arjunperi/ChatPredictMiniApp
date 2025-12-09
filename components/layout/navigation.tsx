@@ -1,8 +1,10 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
 interface NavLink {
   href: string;
@@ -17,20 +19,46 @@ const navLinks: NavLink[] = [
   { href: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
 ];
 
-function getUserBalance(): Promise<number> {
-  // This will be replaced with actual API call once we have user context
-  return Promise.resolve(1000);
+async function getUserBalance(): Promise<number> {
+  try {
+    console.log('[Navigation] Fetching balance...');
+    const response = await fetch('/api/balance', {
+      headers: getTelegramAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Navigation] Failed to fetch balance:', response.status, response.statusText, errorText);
+      return 0;
+    }
+    
+    const data = await response.json();
+    console.log('[Navigation] Balance API response:', data);
+    const balance = data.balance || 0;
+    console.log('[Navigation] Returning balance:', balance);
+    return balance;
+  } catch (error) {
+    console.error('[Navigation] Error fetching balance:', error);
+    return 0;
+  }
 }
 
 export function Navigation() {
   const pathname = usePathname();
 
   // Get user balance - TODO: Replace with actual user context
-  const { data: balance } = useQuery({
+  const { data: balance, error: balanceError, refetch: refetchBalance } = useQuery({
     queryKey: ['user-balance'],
     queryFn: getUserBalance,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // Allow immediate refetch after invalidation
+    refetchOnMount: true, // Always refetch when component mounts
+    retry: 2, // Retry failed requests
   });
+
+  // Log balance state for debugging
+  React.useEffect(() => {
+    console.log('[Navigation] Balance state:', { balance, balanceError, hasData: balance !== undefined });
+  }, [balance, balanceError]);
 
   return (
     <nav className="bg-slate-800 border-b border-slate-700 sticky top-0 z-40">

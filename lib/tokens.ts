@@ -46,6 +46,8 @@ export async function getUserBalance(telegramId: string) {
     select: { tokenBalance: true },
   });
 
+  console.log('[getUserBalance] telegramId:', telegramId, 'user found:', !!user, 'balance:', user?.tokenBalance);
+
   return user?.tokenBalance || 0;
 }
 

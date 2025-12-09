@@ -6,16 +6,37 @@ import { StatsCard } from '@/components/dashboard/stats-card';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { Loading } from '@/components/ui/loading';
 import { useTelegramContext } from '@/lib/telegram/context';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
-// TODO: Replace with actual API call once user context is available
-function getUserStats() {
-  return Promise.resolve({
-    balance: 1000,
-    activePositions: 5,
-    totalInvested: 5000,
-    totalReturns: 5200,
-    netPL: 200,
-  });
+async function getUserStats() {
+  try {
+    const response = await fetch('/api/user/stats', {
+      headers: getTelegramAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to fetch user stats:', response.statusText);
+      return {
+        balance: 0,
+        activePositions: 0,
+        totalInvested: 0,
+        totalReturns: 0,
+        netPL: 0,
+      };
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    return {
+      balance: 0,
+      activePositions: 0,
+      totalInvested: 0,
+      totalReturns: 0,
+      netPL: 0,
+    };
+  }
 }
 
 function getMarketStats(chatId?: string | null) {

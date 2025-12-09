@@ -38,9 +38,16 @@ export function useSell() {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['markets'] });
       queryClient.invalidateQueries({ queryKey: ['market'] });
-      queryClient.invalidateQueries({ queryKey: ['user-balance'] });
       queryClient.invalidateQueries({ queryKey: ['bets'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio'] });
+      
+      // Force immediate refetch of balance to get accurate value from server
+      queryClient.refetchQueries({ queryKey: ['user-balance'] });
+      
+      // Update balance optimistically with server response if available
+      if (data?.newBalance !== undefined) {
+        queryClient.setQueryData(['user-balance'], data.newBalance);
+      }
       
       success(`Shares sold successfully! Received ${data.payout} tokens.`);
     },

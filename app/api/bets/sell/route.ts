@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         });
 
         // 5. Update user balance
-        await tx.user.update({
+        const updatedUser = await tx.user.update({
           where: { id: user.id },
           data: {
             tokenBalance: { increment: lmsrResult.payout },
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
           payout: lmsrResult.payout,
           sharesSold: sharesToSell,
           newProbability: lmsrResult.newProbability,
-          newBalance: user.tokenBalance + lmsrResult.payout,
+          newBalance: updatedUser.tokenBalance,
         };
       }, {
         isolationLevel: 'Serializable',

@@ -7,17 +7,42 @@ import { TransactionHistory } from '@/components/portfolio/transaction-history';
 import { LoadingPage } from '@/components/ui/loading';
 import { useMarkets } from '@/hooks/use-markets';
 import { useBets } from '@/hooks/use-bets';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
-// TODO: Replace with actual user context
-function getPortfolioData() {
-  return Promise.resolve({
-    balance: 1000,
-    activePositions: 5,
-    totalInvested: 5000,
-    totalReturns: 5200,
-    netPL: 200,
-    transactions: [],
-  });
+async function getPortfolioData() {
+  try {
+    const response = await fetch('/api/user/stats', {
+      headers: getTelegramAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to fetch portfolio data:', response.statusText);
+      return {
+        balance: 0,
+        activePositions: 0,
+        totalInvested: 0,
+        totalReturns: 0,
+        netPL: 0,
+        transactions: [],
+      };
+    }
+    
+    const data = await response.json();
+    return {
+      ...data,
+      transactions: [], // TODO: Add transactions endpoint
+    };
+  } catch (error) {
+    console.error('Error fetching portfolio data:', error);
+    return {
+      balance: 0,
+      activePositions: 0,
+      totalInvested: 0,
+      totalReturns: 0,
+      netPL: 0,
+      transactions: [],
+    };
+  }
 }
 
 export default function PortfolioPage() {
