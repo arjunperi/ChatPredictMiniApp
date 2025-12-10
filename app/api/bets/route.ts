@@ -80,6 +80,10 @@ export async function POST(request: NextRequest) {
       telegramUser.last_name
     );
 
+    if (!user) {
+      throw new Error('Failed to get or create user');
+    }
+
     // Execute everything in a single transaction with proper locking and retry on conflicts
     const result = await retryWithBackoff(async () => {
       return prisma.$transaction(async (tx) => {

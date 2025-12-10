@@ -42,6 +42,10 @@ export async function POST(
       lastName
     );
 
+    if (!user) {
+      throw new Error('Failed to get or create user');
+    }
+
     return NextResponse.json({
       user,
       isNew: user.createdAt.getTime() === user.updatedAt.getTime(),

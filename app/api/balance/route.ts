@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
       telegramUser.last_name
     );
     
+    if (!user) {
+      throw new Error('Failed to get or create user');
+    }
+    
     console.log('[Balance API] User balance:', {
       userId: user.id,
       telegramId: userTelegramId,

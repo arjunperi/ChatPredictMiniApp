@@ -10,13 +10,22 @@ export async function getOrCreateUser(
   firstName?: string,
   lastName?: string
 ) {
-  let user = await prisma.user.findUnique({
+  // First check if user exists and if they have initial grant
+  const existingUser = await prisma.user.findUnique({
     where: { telegramId },
+    include: {
+      transactions: {
+        where: {
+          type: TransactionType.INITIAL_GRANT,
+        },
+        take: 1,
+      },
+    },
   });
 
-  if (!user) {
+  if (!existingUser) {
     // Create new user with initial token grant
-    user = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         telegramId,
         username,
@@ -32,9 +41,31 @@ export async function getOrCreateUser(
         },
       },
     });
+    return user;
   }
 
-  return user;
+  // Check if existing user needs initial grant
+  if (existingUser.tokenBalance === 0 && existingUser.transactions.length === 0) {
+    // Existing user with 0 balance and no initial grant - grant tokens
+    console.log(`[getOrCreateUser] Granting initial tokens to existing user: ${telegramId}`);
+    const updatedUser = await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        tokenBalance: 1000,
+        transactions: {
+          create: {
+            type: TransactionType.INITIAL_GRANT,
+            amount: 1000,
+            description: 'Initial token grant (retroactive)',
+          },
+        },
+      },
+    });
+    return updatedUser;
+  }
+
+  // Return existing user (without transactions relation)
+  return existingUser;
 }
 
 /**
