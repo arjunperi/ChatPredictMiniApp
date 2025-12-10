@@ -6,16 +6,49 @@ import { StatsCard } from '@/components/dashboard/stats-card';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { Loading } from '@/components/ui/loading';
 import { useTelegramContext } from '@/lib/telegram/context';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
-// TODO: Replace with actual API call once user context is available
-function getUserStats() {
-  return Promise.resolve({
-    balance: 1000,
-    activePositions: 5,
-    totalInvested: 5000,
-    totalReturns: 5200,
-    netPL: 200,
-  });
+// Get real user stats from API
+async function getUserStats() {
+  try {
+    // Get balance from API
+    const balanceResponse = await fetch('/api/balance', {
+      headers: getTelegramAuthHeaders(),
+    });
+    
+    if (!balanceResponse.ok) {
+      console.error('[Home] Failed to fetch balance:', balanceResponse.status);
+      return {
+        balance: 0,
+        activePositions: 0,
+        totalInvested: 0,
+        totalReturns: 0,
+        netPL: 0,
+      };
+    }
+    
+    const balanceData = await balanceResponse.json();
+    const balance = balanceData.balance || 0;
+    
+    // TODO: Calculate activePositions, totalInvested, totalReturns, netPL from bets
+    // For now, return balance and placeholder values
+    return {
+      balance,
+      activePositions: 0, // TODO: Calculate from user's bets
+      totalInvested: 0,   // TODO: Calculate from user's bets
+      totalReturns: 0,    // TODO: Calculate from user's bets
+      netPL: 0,           // TODO: Calculate from user's bets
+    };
+  } catch (error) {
+    console.error('[Home] Error fetching user stats:', error);
+    return {
+      balance: 0,
+      activePositions: 0,
+      totalInvested: 0,
+      totalReturns: 0,
+      netPL: 0,
+    };
+  }
 }
 
 function getMarketStats(chatId?: string | null) {
