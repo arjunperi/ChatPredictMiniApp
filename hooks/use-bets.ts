@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { BetsResponse } from '@/types/api';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
 export function useBets(userId?: string, marketId?: string) {
   return useQuery({
@@ -11,7 +12,11 @@ export function useBets(userId?: string, marketId?: string) {
       if (userId) params.append('userId', userId);
       if (marketId) params.append('marketId', marketId);
 
-      const response = await fetch(`/api/bets?${params}`);
+      // Include auth headers so API can return current user's bets if no userId provided
+      const response = await fetch(`/api/bets?${params}`, {
+        headers: getTelegramAuthHeaders(),
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to fetch bets');
       }

@@ -15,9 +15,31 @@ export async function GET(request: NextRequest) {
     const marketId = searchParams.get('marketId') || undefined;
     const limit = parseInt(searchParams.get('limit') || '50');
 
+    // If no userId provided, try to get current user from auth
+    let finalUserId = userId;
+    if (!finalUserId) {
+      try {
+        const telegramUser = await getTelegramUser(request);
+        if (telegramUser) {
+          const user = await getOrCreateUser(
+            telegramUser.id.toString(),
+            telegramUser.username,
+            telegramUser.first_name,
+            telegramUser.last_name
+          );
+          if (user) {
+            finalUserId = user.id;
+          }
+        }
+      } catch (error) {
+        // Auth is optional for GET - if it fails, continue without user filter
+        console.log('[Bets API] No auth provided, returning all bets');
+      }
+    }
+
     const bets = await prisma.bet.findMany({
       where: {
-        ...(userId && { userId }),
+        ...(finalUserId && { userId: finalUserId }),
         ...(marketId && { marketId }),
       },
       include: {
