@@ -7,23 +7,91 @@ import { TransactionHistory } from '@/components/portfolio/transaction-history';
 import { LoadingPage } from '@/components/ui/loading';
 import { useMarkets } from '@/hooks/use-markets';
 import { useBets } from '@/hooks/use-bets';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
-// TODO: Replace with actual user context
-function getPortfolioData() {
-  return Promise.resolve({
-    balance: 1000,
-    activePositions: 5,
-    totalInvested: 5000,
-    totalReturns: 5200,
-    netPL: 200,
-    transactions: [],
-  });
+// Get real portfolio data from API
+async function getPortfolioData() {
+  try {
+    // Check if Telegram WebApp is available
+    if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
+      console.warn('[Portfolio] Telegram WebApp not available, skipping balance fetch');
+      return {
+        balance: 0,
+        activePositions: 0,
+        totalInvested: 0,
+        totalReturns: 0,
+        netPL: 0,
+        transactions: [],
+      };
+    }
+    
+    // Wait a bit if Telegram isn't ready yet
+    if (!window.Telegram.WebApp.initData) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!window.Telegram.WebApp.initData) {
+        console.warn('[Portfolio] Telegram initData not available');
+        return {
+          balance: 0,
+          activePositions: 0,
+          totalInvested: 0,
+          totalReturns: 0,
+          netPL: 0,
+          transactions: [],
+        };
+      }
+    }
+    
+    // Get balance from API
+    const balanceResponse = await fetch('/api/balance', {
+      headers: getTelegramAuthHeaders(),
+    });
+    
+    if (!balanceResponse.ok) {
+      console.error('[Portfolio] Failed to fetch balance:', balanceResponse.status);
+      return {
+        balance: 0,
+        activePositions: 0,
+        totalInvested: 0,
+        totalReturns: 0,
+        netPL: 0,
+        transactions: [],
+      };
+    }
+    
+    const balanceData = await balanceResponse.json();
+    const balance = balanceData.balance || 0;
+    
+    // TODO: Calculate activePositions, totalInvested, totalReturns, netPL from bets
+    // TODO: Fetch transactions from API
+    return {
+      balance,
+      activePositions: 0, // TODO: Calculate from user's bets
+      totalInvested: 0,   // TODO: Calculate from user's bets
+      totalReturns: 0,    // TODO: Calculate from user's bets
+      netPL: 0,           // TODO: Calculate from user's bets
+      transactions: [],    // TODO: Fetch from API
+    };
+  } catch (error) {
+    console.error('[Portfolio] Error fetching portfolio data:', error);
+    return {
+      balance: 0,
+      activePositions: 0,
+      totalInvested: 0,
+      totalReturns: 0,
+      netPL: 0,
+      transactions: [],
+    };
+  }
 }
 
 export default function PortfolioPage() {
+  // Only fetch portfolio data if Telegram WebApp is available
+  const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram?.WebApp;
+  
   const { data: portfolioData, isLoading: portfolioLoading } = useQuery({
     queryKey: ['portfolio'],
     queryFn: getPortfolioData,
+    enabled: isTelegramAvailable, // Only fetch in Telegram context
   });
 
   const { data: markets } = useMarkets();
