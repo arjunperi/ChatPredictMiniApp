@@ -43,8 +43,9 @@ export default function MarketDetailPage({
     });
   };
 
-  const handleSell = async (betId: string, shares?: number) => {
-    await sellMutation.mutateAsync({ betId, shares });
+  const handleSell = async (outcome: 'YES' | 'NO', shares: number) => {
+    if (!market) return;
+    await sellMutation.mutateAsync({ marketId: market.id, outcome, shares });
   };
 
   // TODO: Check if current user is the creator

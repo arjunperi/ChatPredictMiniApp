@@ -14,7 +14,7 @@ interface TradingPanelProps {
   userBets?: Bet[];
   userBalance?: number;
   onBuy: (outcome: 'YES' | 'NO', amount: number) => Promise<void>;
-  onSell: (betId: string, shares?: number) => Promise<void>;
+  onSell: (outcome: 'YES' | 'NO', shares: number) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -71,8 +71,8 @@ export function TradingPanel({
     setAmount(0);
   };
 
-  const handleSell = async (betId: string) => {
-    await onSell(betId);
+  const handleSell = async (outcome: 'YES' | 'NO', shares: number) => {
+    await onSell(outcome, shares);
   };
 
   if (market.status !== 'ACTIVE') {
@@ -94,6 +94,7 @@ export function TradingPanel({
         <PositionDisplay
           positions={userPositions}
           currentProbabilityYes={currentProbabilityYes}
+          marketId={market.id}
           onSell={handleSell}
         />
       )}

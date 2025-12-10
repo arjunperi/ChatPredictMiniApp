@@ -1,23 +1,22 @@
 import Link from 'next/link';
-import { Bet } from '@/types/bet';
 import { Market } from '@/types/market';
+import { BlendedPosition } from '@/types/position';
 
 interface PositionCardProps {
-  bet: Bet;
   market: Market;
-  currentProbabilityYes: number;
+  outcome: 'YES' | 'NO';
+  position: BlendedPosition;
+  currentProbability: number;
 }
 
 export function PositionCard({
-  bet,
   market,
-  currentProbabilityYes,
+  outcome,
+  position,
+  currentProbability,
 }: PositionCardProps) {
-  const currentProbability =
-    bet.outcome === 'YES' ? currentProbabilityYes : 1 - currentProbabilityYes;
-  const priceChange = currentProbability - bet.priceAtBet;
-  const estimatedValue = bet.shares * currentProbability;
-  const pnl = estimatedValue - bet.amount;
+  const priceChange = currentProbability - position.averageCost;
+  const profitPerShare = currentProbability - position.averageCost;
 
   return (
     <Link href={`/markets/${market.id}`}>
@@ -30,15 +29,18 @@ export function PositionCard({
             <div className="flex items-center gap-2">
               <span
                 className={`px-2 py-1 rounded text-xs font-bold ${
-                  bet.outcome === 'YES'
+                  outcome === 'YES'
                     ? 'bg-green-500/20 text-green-400'
                     : 'bg-red-500/20 text-red-400'
                 }`}
               >
-                {bet.outcome}
+                {outcome}
               </span>
               <span className="text-xs text-slate-400">
-                {bet.shares.toFixed(2)} shares
+                {position.totalShares.toFixed(2)} shares
+              </span>
+              <span className="text-xs text-slate-400">
+                @ {position.averageCost.toFixed(2)} avg
               </span>
             </div>
           </div>
@@ -47,34 +49,33 @@ export function PositionCard({
         <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-700">
           <div>
             <div className="text-xs text-slate-400 mb-1">Invested</div>
-            <div className="text-white font-medium">{bet.amount} 🪙</div>
+            <div className="text-white font-medium">{position.totalCost.toFixed(2)} 🪙</div>
           </div>
           <div>
             <div className="text-xs text-slate-400 mb-1">Current Value</div>
             <div className="text-white font-medium">
-              {estimatedValue.toFixed(0)} 🪙
+              {position.estimatedValue.toFixed(2)} 🪙
             </div>
           </div>
           <div>
-            <div className="text-xs text-slate-400 mb-1">Price Change</div>
+            <div className="text-xs text-slate-400 mb-1">Current Price</div>
             <div
               className={`font-medium ${
                 priceChange >= 0 ? 'text-green-400' : 'text-red-400'
               }`}
             >
-              {priceChange >= 0 ? '+' : ''}
-              {(priceChange * 100).toFixed(1)}%
+              {(currentProbability * 100).toFixed(1)}%
             </div>
           </div>
           <div>
             <div className="text-xs text-slate-400 mb-1">P&L</div>
             <div
               className={`font-bold ${
-                pnl >= 0 ? 'text-green-400' : 'text-red-400'
+                position.pnl >= 0 ? 'text-green-400' : 'text-red-400'
               }`}
             >
-              {pnl >= 0 ? '+' : ''}
-              {pnl.toFixed(0)} 🪙
+              {position.pnl >= 0 ? '+' : ''}
+              {position.pnl.toFixed(2)} 🪙
             </div>
           </div>
         </div>
@@ -82,4 +83,3 @@ export function PositionCard({
     </Link>
   );
 }
-
