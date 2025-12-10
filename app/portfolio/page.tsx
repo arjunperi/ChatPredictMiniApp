@@ -42,13 +42,13 @@ async function getPortfolioData() {
       }
     }
     
-    // Get balance from API
-    const balanceResponse = await fetch('/api/balance', {
+    // Get user stats from API (includes balance, activePositions, etc.)
+    const statsResponse = await fetch('/api/user/stats', {
       headers: getTelegramAuthHeaders(),
     });
     
-    if (!balanceResponse.ok) {
-      console.error('[Portfolio] Failed to fetch balance:', balanceResponse.status);
+    if (!statsResponse.ok) {
+      console.error('[Portfolio] Failed to fetch stats:', statsResponse.status);
       return {
         balance: 0,
         activePositions: 0,
@@ -59,18 +59,19 @@ async function getPortfolioData() {
       };
     }
     
-    const balanceData = await balanceResponse.json();
-    const balance = balanceData.balance || 0;
+    const statsData = await statsResponse.json();
+    const stats = statsData.stats || {
+      balance: 0,
+      activePositions: 0,
+      totalInvested: 0,
+      totalReturns: 0,
+      netPL: 0,
+    };
     
-    // TODO: Calculate activePositions, totalInvested, totalReturns, netPL from bets
     // TODO: Fetch transactions from API
     return {
-      balance,
-      activePositions: 0, // TODO: Calculate from user's bets
-      totalInvested: 0,   // TODO: Calculate from user's bets
-      totalReturns: 0,    // TODO: Calculate from user's bets
-      netPL: 0,           // TODO: Calculate from user's bets
-      transactions: [],    // TODO: Fetch from API
+      ...stats,
+      transactions: [], // TODO: Fetch from API
     };
   } catch (error) {
     console.error('[Portfolio] Error fetching portfolio data:', error);

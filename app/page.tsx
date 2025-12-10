@@ -38,13 +38,13 @@ async function getUserStats() {
       }
     }
     
-    // Get balance from API
-    const balanceResponse = await fetch('/api/balance', {
+    // Get user stats from API (includes balance, activePositions, etc.)
+    const statsResponse = await fetch('/api/user/stats', {
       headers: getTelegramAuthHeaders(),
     });
     
-    if (!balanceResponse.ok) {
-      console.error('[Home] Failed to fetch balance:', balanceResponse.status);
+    if (!statsResponse.ok) {
+      console.error('[Home] Failed to fetch stats:', statsResponse.status);
       return {
         balance: 0,
         activePositions: 0,
@@ -54,17 +54,13 @@ async function getUserStats() {
       };
     }
     
-    const balanceData = await balanceResponse.json();
-    const balance = balanceData.balance || 0;
-    
-    // TODO: Calculate activePositions, totalInvested, totalReturns, netPL from bets
-    // For now, return balance and placeholder values
-    return {
-      balance,
-      activePositions: 0, // TODO: Calculate from user's bets
-      totalInvested: 0,   // TODO: Calculate from user's bets
-      totalReturns: 0,    // TODO: Calculate from user's bets
-      netPL: 0,           // TODO: Calculate from user's bets
+    const statsData = await statsResponse.json();
+    return statsData.stats || {
+      balance: 0,
+      activePositions: 0,
+      totalInvested: 0,
+      totalReturns: 0,
+      netPL: 0,
     };
   } catch (error) {
     console.error('[Home] Error fetching user stats:', error);

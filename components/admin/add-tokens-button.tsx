@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useAddTokens } from '@/hooks/use-add-tokens';
+import { useClearPositions } from '@/hooks/use-clear-positions';
 
 export function AddTokensButton() {
   const [amount, setAmount] = useState(1000);
   const [isOpen, setIsOpen] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const addTokensMutation = useAddTokens();
+  const clearPositionsMutation = useClearPositions();
 
   const handleAdd = async () => {
     if (amount <= 0) return;
@@ -20,15 +23,60 @@ export function AddTokensButton() {
     }
   };
 
-  if (!isOpen) {
+  const handleClearPositions = async () => {
+    try {
+      await clearPositionsMutation.mutateAsync();
+      setShowClearConfirm(false);
+    } catch (error) {
+      // Error is handled by the hook
+    }
+  };
+
+  if (!isOpen && !showClearConfirm) {
     return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-      >
-        <span>➕</span>
-        <span>Add Test Tokens</span>
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => setIsOpen(true)}
+          className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+        >
+          <span>➕</span>
+          <span>Add Test Tokens</span>
+        </button>
+        <button
+          onClick={() => setShowClearConfirm(true)}
+          className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+        >
+          <span>🗑️</span>
+          <span>Clear Positions</span>
+        </button>
+      </div>
+    );
+  }
+
+  if (showClearConfirm) {
+    return (
+      <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <h3 className="text-lg font-bold text-white mb-2">Clear All Positions?</h3>
+        <p className="text-sm text-slate-400 mb-4">
+          This will delete all your bets/positions. This action cannot be undone.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={handleClearPositions}
+            disabled={clearPositionsMutation.isPending}
+            className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            {clearPositionsMutation.isPending ? 'Clearing...' : 'Yes, Clear All'}
+          </button>
+          <button
+            onClick={() => setShowClearConfirm(false)}
+            disabled={clearPositionsMutation.isPending}
+            className="bg-slate-700 hover:bg-slate-600 text-white font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
     );
   }
 
