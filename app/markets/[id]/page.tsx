@@ -62,7 +62,8 @@ export default function MarketDetailPage({
 }) {
   const { id } = use(params);
   const { data: market, isLoading: marketLoading, error } = useMarket(id);
-  const { data: bets } = useBets(id);
+  // Get all user's bets (API will return current user's bets when authenticated)
+  const { data: allBets } = useBets();
   const { data: userBalance } = useQuery({
     queryKey: ['user-balance'],
     queryFn: getUserBalance,
@@ -106,7 +107,14 @@ export default function MarketDetailPage({
   }
 
   // Filter user's bets for this market
-  const userBets = bets?.filter((bet) => bet.marketId === id) || [];
+  const userBets = allBets?.filter((bet) => bet.marketId === id) || [];
+  
+  console.log('[Market Detail] User bets for market:', {
+    marketId: id,
+    allBetsCount: allBets?.length || 0,
+    userBetsCount: userBets.length,
+    userBets: userBets.map(b => ({ id: b.id, outcome: b.outcome, shares: b.shares })),
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

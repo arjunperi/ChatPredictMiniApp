@@ -35,37 +35,77 @@ export function PositionDisplay({
       <h3 className="text-sm font-medium text-slate-300 mb-4">Your Position</h3>
       
       <div className="space-y-3">
-        {totalYesShares > 0 && (
-          <div className="flex items-center justify-between">
-            <div>
+        {positions.yes.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
               <div className="text-white font-medium">YES Shares</div>
-              <div className="text-xs text-slate-400">
-                {totalYesShares.toFixed(2)} shares • {totalYesCost.toLocaleString()} 🪙 invested
+              <div className="text-right">
+                <div className="text-white font-bold">
+                  {Math.round(currentProbabilityYes * 100)}%
+                </div>
+                <div className="text-xs text-slate-400">current price</div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-white font-bold">
-                {Math.round(currentProbabilityYes * 100)}%
+            {positions.yes.map((bet) => (
+              <div
+                key={bet.id}
+                className="flex items-center justify-between bg-slate-700/50 rounded-lg p-3"
+              >
+                <div>
+                  <div className="text-white text-sm">
+                    {bet.shares.toFixed(2)} shares
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    {bet.amount.toLocaleString()} 🪙 invested
+                  </div>
+                </div>
+                {onSell && (
+                  <button
+                    onClick={() => onSell(bet.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Sell
+                  </button>
+                )}
               </div>
-              <div className="text-xs text-slate-400">current price</div>
-            </div>
+            ))}
           </div>
         )}
 
-        {totalNoShares > 0 && (
-          <div className="flex items-center justify-between">
-            <div>
+        {positions.no.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
               <div className="text-white font-medium">NO Shares</div>
-              <div className="text-xs text-slate-400">
-                {totalNoShares.toFixed(2)} shares • {totalNoCost.toLocaleString()} 🪙 invested
+              <div className="text-right">
+                <div className="text-white font-bold">
+                  {Math.round((1 - currentProbabilityYes) * 100)}%
+                </div>
+                <div className="text-xs text-slate-400">current price</div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-white font-bold">
-                {Math.round((1 - currentProbabilityYes) * 100)}%
+            {positions.no.map((bet) => (
+              <div
+                key={bet.id}
+                className="flex items-center justify-between bg-slate-700/50 rounded-lg p-3"
+              >
+                <div>
+                  <div className="text-white text-sm">
+                    {bet.shares.toFixed(2)} shares
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    {bet.amount.toLocaleString()} 🪙 invested
+                  </div>
+                </div>
+                {onSell && (
+                  <button
+                    onClick={() => onSell(bet.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Sell
+                  </button>
+                )}
               </div>
-              <div className="text-xs text-slate-400">current price</div>
-            </div>
+            ))}
           </div>
         )}
 

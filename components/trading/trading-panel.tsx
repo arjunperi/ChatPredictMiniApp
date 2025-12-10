@@ -180,7 +180,11 @@ export function TradingPanel({
         </>
       ) : (
         <div className="text-center text-slate-400 py-8">
-          <p>Select a position above to sell shares</p>
+          {hasPosition ? (
+            <p>Click "Sell" on any position above to sell your shares</p>
+          ) : (
+            <p>You don't have any positions in this market yet</p>
+          )}
         </div>
       )}
     </div>
