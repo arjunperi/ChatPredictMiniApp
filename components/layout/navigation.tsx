@@ -32,9 +32,10 @@ async function getUserBalance(): Promise<number> {
     }
     
     const headers = getTelegramAuthHeaders();
+    const headersObj = headers as Record<string, string>;
     console.log('[Navigation] Fetching balance with headers:', {
-      hasInitData: !!headers['X-Telegram-Init-Data'],
-      headerKeys: Object.keys(headers),
+      hasInitData: !!headersObj['X-Telegram-Init-Data'],
+      headerKeys: Object.keys(headersObj),
     });
     
     const response = await fetch('/api/balance', {
