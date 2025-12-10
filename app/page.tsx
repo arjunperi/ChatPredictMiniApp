@@ -11,6 +11,33 @@ import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 // Get real user stats from API
 async function getUserStats() {
   try {
+    // Check if Telegram WebApp is available
+    if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
+      console.warn('[Home] Telegram WebApp not available, skipping balance fetch');
+      return {
+        balance: 0,
+        activePositions: 0,
+        totalInvested: 0,
+        totalReturns: 0,
+        netPL: 0,
+      };
+    }
+    
+    // Wait a bit if Telegram isn't ready yet
+    if (!window.Telegram.WebApp.initData) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!window.Telegram.WebApp.initData) {
+        console.warn('[Home] Telegram initData not available');
+        return {
+          balance: 0,
+          activePositions: 0,
+          totalInvested: 0,
+          totalReturns: 0,
+          netPL: 0,
+        };
+      }
+    }
+    
     // Get balance from API
     const balanceResponse = await fetch('/api/balance', {
       headers: getTelegramAuthHeaders(),
@@ -66,9 +93,13 @@ function getMarketStats(chatId?: string | null) {
 export default function Home() {
   const { chatId } = useTelegramContext();
   
+  // Only fetch user stats if Telegram WebApp is available
+  const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram?.WebApp;
+  
   const { data: userStats, isLoading: userLoading } = useQuery({
     queryKey: ['user-stats'],
     queryFn: getUserStats,
+    enabled: isTelegramAvailable, // Only fetch in Telegram context
   });
 
   const { data: marketStats, isLoading: marketLoading } = useQuery({
