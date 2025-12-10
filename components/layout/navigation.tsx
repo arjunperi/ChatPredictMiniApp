@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
 interface NavLink {
   href: string;
@@ -19,9 +20,11 @@ const navLinks: NavLink[] = [
 
 async function getUserBalance(): Promise<number> {
   try {
-    const response = await fetch('/api/balance');
+    const response = await fetch('/api/balance', {
+      headers: getTelegramAuthHeaders(),
+    });
     if (!response.ok) {
-      console.error('[Navigation] Failed to fetch balance:', response.statusText);
+      console.error('[Navigation] Failed to fetch balance:', response.status, response.statusText);
       return 0;
     }
     const data = await response.json();
