@@ -12,9 +12,19 @@ import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-function getUserBalance(): Promise<number> {
-  // TODO: Replace with actual API call
-  return Promise.resolve(1000);
+async function getUserBalance(): Promise<number> {
+  try {
+    const response = await fetch('/api/balance');
+    if (!response.ok) {
+      console.error('[Market Detail] Failed to fetch balance:', response.statusText);
+      return 0;
+    }
+    const data = await response.json();
+    return data.balance || 0;
+  } catch (error) {
+    console.error('[Market Detail] Error fetching balance:', error);
+    return 0;
+  }
 }
 
 export default function MarketDetailPage({
@@ -28,6 +38,8 @@ export default function MarketDetailPage({
   const { data: userBalance } = useQuery({
     queryKey: ['user-balance'],
     queryFn: getUserBalance,
+    staleTime: 0, // Always refetch to get latest balance
+    refetchOnMount: true,
   });
 
   const [showResolveModal, setShowResolveModal] = useState(false);

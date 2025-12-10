@@ -116,8 +116,18 @@ export async function POST(request: NextRequest) {
           : lmsr.buyNo(market.sharesYes, market.sharesNo, amount);
 
       // 4. Verify user has enough tokens for the actual cost
+      console.log('[Bet API] Balance check:', {
+        userBalance: currentUser.tokenBalance,
+        requestedAmount: amount,
+        calculatedCost: lmsrResult.cost,
+        shares: lmsrResult.shares,
+        sufficient: currentUser.tokenBalance >= lmsrResult.cost,
+      });
+      
       if (currentUser.tokenBalance < lmsrResult.cost) {
-        throw new Error('Insufficient tokens');
+        throw new Error(
+          `Insufficient tokens. Balance: ${currentUser.tokenBalance}, Required: ${lmsrResult.cost}, Shortfall: ${lmsrResult.cost - currentUser.tokenBalance}`
+        );
       }
 
       // 5. Create bet
@@ -205,9 +215,15 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (error.message === 'Insufficient tokens') {
+    if (error.message?.includes('Insufficient tokens')) {
+      // Extract the detailed error message if available
+      const errorMessage = error.message || 'Insufficient tokens';
       return NextResponse.json(
-        { error: 'Insufficient tokens', code: 'INSUFFICIENT_TOKENS' },
+        { 
+          error: errorMessage, 
+          code: 'INSUFFICIENT_TOKENS',
+          message: errorMessage,
+        },
         { status: 400 }
       );
     }

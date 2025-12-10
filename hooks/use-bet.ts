@@ -29,7 +29,14 @@ export function useBet() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to place bet');
+        // Show detailed error message if available
+        const errorMessage = errorData.message || errorData.error || 'Failed to place bet';
+        console.error('[useBet] Bet failed:', {
+          status: response.status,
+          error: errorData,
+          message: errorMessage,
+        });
+        throw new Error(errorMessage);
       }
 
       return response.json();

@@ -17,19 +17,30 @@ const navLinks: NavLink[] = [
   { href: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
 ];
 
-function getUserBalance(): Promise<number> {
-  // This will be replaced with actual API call once we have user context
-  return Promise.resolve(1000);
+async function getUserBalance(): Promise<number> {
+  try {
+    const response = await fetch('/api/balance');
+    if (!response.ok) {
+      console.error('[Navigation] Failed to fetch balance:', response.statusText);
+      return 0;
+    }
+    const data = await response.json();
+    return data.balance || 0;
+  } catch (error) {
+    console.error('[Navigation] Error fetching balance:', error);
+    return 0;
+  }
 }
 
 export function Navigation() {
   const pathname = usePathname();
 
-  // Get user balance - TODO: Replace with actual user context
+  // Get user balance from API
   const { data: balance } = useQuery({
     queryKey: ['user-balance'],
     queryFn: getUserBalance,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // Always refetch to get latest balance
+    refetchOnMount: true,
   });
 
   return (
