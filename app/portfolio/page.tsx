@@ -8,6 +8,7 @@ import { LoadingPage } from '@/components/ui/loading';
 import { useMarkets } from '@/hooks/use-markets';
 import { useBets } from '@/hooks/use-bets';
 import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
+import { AddTokensButton } from '@/components/admin/add-tokens-button';
 
 // Get real portfolio data from API
 async function getPortfolioData() {
@@ -106,7 +107,10 @@ export default function PortfolioPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-white mb-8">Portfolio</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-white">Portfolio</h1>
+        <AddTokensButton />
+      </div>
 
       <PortfolioSummary
         balance={portfolioData?.balance || 0}
