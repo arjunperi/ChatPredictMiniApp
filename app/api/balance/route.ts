@@ -5,6 +5,16 @@ import { handleError } from '@/lib/errors/handlers';
 
 export async function GET(request: NextRequest) {
   try {
+    // Log incoming headers for debugging
+    const initDataHeader = request.headers.get('x-telegram-init-data');
+    const authHeader = request.headers.get('authorization');
+    console.log('[Balance API] Request headers:', {
+      hasInitDataHeader: !!initDataHeader,
+      hasAuthHeader: !!authHeader,
+      initDataLength: initDataHeader?.length || 0,
+      allHeaders: Object.fromEntries(request.headers.entries()),
+    });
+    
     const telegramUser = await requireTelegramAuth(request);
     const userTelegramId = telegramUser.id.toString();
     
@@ -24,8 +34,15 @@ export async function GET(request: NextRequest) {
     });
     
     return NextResponse.json({ balance: user.tokenBalance });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Balance API] Error:', error);
+    
+    // Handle NextResponse errors (from requireTelegramAuth)
+    if (error instanceof NextResponse) {
+      console.error('[Balance API] Auth error - returning NextResponse directly');
+      return error;
+    }
+    
     return handleError(error);
   }
 }

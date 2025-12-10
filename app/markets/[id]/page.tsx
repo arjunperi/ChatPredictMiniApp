@@ -15,14 +15,38 @@ import { getTelegramAuthHeaders } from '@/lib/telegram/utils';
 
 async function getUserBalance(): Promise<number> {
   try {
-    const response = await fetch('/api/balance', {
-      headers: getTelegramAuthHeaders(),
+    // Check if Telegram WebApp is available
+    if (typeof window !== 'undefined' && !window.Telegram?.WebApp) {
+      console.warn('[Market Detail] Telegram WebApp not available yet, waiting...');
+      // Wait a bit and retry
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!window.Telegram?.WebApp) {
+        console.error('[Market Detail] Telegram WebApp still not available after wait');
+        return 0;
+      }
+    }
+    
+    const headers = getTelegramAuthHeaders();
+    console.log('[Market Detail] Fetching balance with headers:', {
+      hasInitData: !!headers['X-Telegram-Init-Data'],
+      headerKeys: Object.keys(headers),
     });
+    
+    const response = await fetch('/api/balance', {
+      headers,
+    });
+    
     if (!response.ok) {
-      console.error('[Market Detail] Failed to fetch balance:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('[Market Detail] Failed to fetch balance:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
       return 0;
     }
     const data = await response.json();
+    console.log('[Market Detail] Balance fetched successfully:', data.balance);
     return data.balance || 0;
   } catch (error) {
     console.error('[Market Detail] Error fetching balance:', error);

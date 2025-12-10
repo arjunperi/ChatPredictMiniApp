@@ -21,7 +21,20 @@ export function getChatIdFromUrl(): string | null {
  */
 export function getTelegramInitData(): string | null {
   if (typeof window === 'undefined') return null;
-  return window.Telegram?.WebApp?.initData || null;
+  
+  const initData = window.Telegram?.WebApp?.initData || null;
+  
+  // Log for debugging
+  if (typeof window !== 'undefined') {
+    console.log('[Telegram Utils] initData check:', {
+      hasTelegram: !!window.Telegram,
+      hasWebApp: !!window.Telegram?.WebApp,
+      hasInitData: !!initData,
+      initDataLength: initData?.length || 0,
+    });
+  }
+  
+  return initData;
 }
 
 /**
@@ -35,6 +48,13 @@ export function getTelegramAuthHeaders(): HeadersInit {
   
   if (initData) {
     headers['X-Telegram-Init-Data'] = initData;
+    console.log('[Telegram Utils] Auth headers created with initData');
+  } else {
+    console.warn('[Telegram Utils] No initData available - auth headers will be missing!', {
+      hasWindow: typeof window !== 'undefined',
+      hasTelegram: typeof window !== 'undefined' && !!window.Telegram,
+      hasWebApp: typeof window !== 'undefined' && !!window.Telegram?.WebApp,
+    });
   }
   
   return headers;

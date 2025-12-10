@@ -20,14 +20,38 @@ const navLinks: NavLink[] = [
 
 async function getUserBalance(): Promise<number> {
   try {
-    const response = await fetch('/api/balance', {
-      headers: getTelegramAuthHeaders(),
+    // Check if Telegram WebApp is available
+    if (typeof window !== 'undefined' && !window.Telegram?.WebApp) {
+      console.warn('[Navigation] Telegram WebApp not available yet, waiting...');
+      // Wait a bit and retry
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!window.Telegram?.WebApp) {
+        console.error('[Navigation] Telegram WebApp still not available after wait');
+        return 0;
+      }
+    }
+    
+    const headers = getTelegramAuthHeaders();
+    console.log('[Navigation] Fetching balance with headers:', {
+      hasInitData: !!headers['X-Telegram-Init-Data'],
+      headerKeys: Object.keys(headers),
     });
+    
+    const response = await fetch('/api/balance', {
+      headers,
+    });
+    
     if (!response.ok) {
-      console.error('[Navigation] Failed to fetch balance:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('[Navigation] Failed to fetch balance:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
       return 0;
     }
     const data = await response.json();
+    console.log('[Navigation] Balance fetched successfully:', data.balance);
     return data.balance || 0;
   } catch (error) {
     console.error('[Navigation] Error fetching balance:', error);
