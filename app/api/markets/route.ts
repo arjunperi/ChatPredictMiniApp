@@ -4,6 +4,7 @@ import { validateMarketQuestion } from '@/lib/utils/validation';
 import { MarketStatus } from '@prisma/client';
 import { requireTelegramAuth } from '@/lib/telegram/middleware';
 import { handleError } from '@/lib/errors/handlers';
+import { LMSR } from '@/lib/lmsr';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,8 +20,22 @@ export async function GET(request: NextRequest) {
     const markets = await getMarkets({ chatId, status, limit, offset });
 
     console.log('[Markets API] Successfully fetched markets:', { count: markets.length });
-
-    return NextResponse.json({ markets });
+    
+    // Calculate probabilityYes for each market (same as detail API)
+    const marketsWithProbability = markets.map((market) => {
+      const lmsr = new LMSR(market.liquidity);
+      const probabilityYes = lmsr.getProbability(market.sharesYes, market.sharesNo);
+      return {
+        ...market,
+        probabilityYes,
+      };
+    });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/49efe74e-58fa-4301-bd61-e7414a2ae428',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/markets/route.ts:29',message:'Markets API after probability calculation',data:{marketCount:marketsWithProbability.length,firstMarketHasProbability:marketsWithProbability[0]?.probabilityYes!==undefined,firstMarketProbability:marketsWithProbability[0]?.probabilityYes,firstMarketShares:marketsWithProbability[0]?{sharesYes:marketsWithProbability[0].sharesYes,sharesNo:marketsWithProbability[0].sharesNo}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
+    return NextResponse.json({ markets: marketsWithProbability });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;

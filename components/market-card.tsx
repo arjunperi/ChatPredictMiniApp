@@ -3,6 +3,7 @@
 import { Market } from '@/types/market';
 import { Badge } from './ui/badge';
 import Link from 'next/link';
+import { LMSR } from '@/lib/lmsr';
 
 interface MarketCardProps {
   market: Market;
@@ -10,7 +11,23 @@ interface MarketCardProps {
 }
 
 export function MarketCard({ market, showActions = false }: MarketCardProps) {
-  const probability = market.probabilityYes || 0.5;
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/49efe74e-58fa-4301-bd61-e7414a2ae428',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'components/market-card.tsx:12',message:'MarketCard rendering',data:{marketId:market.id,hasProbabilityYes:market.probabilityYes!==undefined,probabilityYes:market.probabilityYes,sharesYes:market.sharesYes,sharesNo:market.sharesNo,liquidity:market.liquidity},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  
+  // Calculate probability if not provided by API (fallback)
+  let probability: number;
+  if (market.probabilityYes !== undefined) {
+    probability = market.probabilityYes;
+  } else {
+    // Calculate client-side as fallback
+    const lmsr = new LMSR(market.liquidity);
+    probability = lmsr.getProbability(market.sharesYes, market.sharesNo);
+  }
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/49efe74e-58fa-4301-bd61-e7414a2ae428',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'components/market-card.tsx:20',message:'MarketCard probability calculation',data:{probabilityYesFromMarket:market.probabilityYes,calculatedProbability:probability,calculatedClientSide:market.probabilityYes===undefined,sharesYes:market.sharesYes,sharesNo:market.sharesNo},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   const probabilityYes = Math.round(probability * 100);
   const probabilityNo = 100 - probabilityYes;
 

@@ -37,8 +37,8 @@ export function useSell() {
       showError(err.message);
     },
     onSuccess: (data, variables) => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['markets'] });
+      // Invalidate relevant queries - use exact: false to match all markets queries
+      queryClient.invalidateQueries({ queryKey: ['markets'], exact: false }); // Match all ['markets', ...] queries
       queryClient.invalidateQueries({ queryKey: ['market'] });
       queryClient.invalidateQueries({ queryKey: ['user-balance'] });
       queryClient.invalidateQueries({ queryKey: ['bets'] });

@@ -64,11 +64,17 @@ export function useBet() {
       showError(err.message);
     },
     onSuccess: (data, variables) => {
-      // Invalidate and refetch
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/49efe74e-58fa-4301-bd61-e7414a2ae428',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'hooks/use-bet.ts:66',message:'Bet success - before invalidation',data:{marketId:variables.marketId,newProbability:data.newProbability},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      // Invalidate and refetch - use exact: false to match all markets queries regardless of chatId/status
       queryClient.invalidateQueries({ queryKey: ['market', variables.marketId] });
-      queryClient.invalidateQueries({ queryKey: ['markets'] });
+      queryClient.invalidateQueries({ queryKey: ['markets'], exact: false }); // Match all ['markets', ...] queries
       queryClient.invalidateQueries({ queryKey: ['user-balance'] });
       queryClient.invalidateQueries({ queryKey: ['bets', variables.marketId] });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/49efe74e-58fa-4301-bd61-e7414a2ae428',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'hooks/use-bet.ts:74',message:'Bet success - after invalidation',data:{marketId:variables.marketId,invalidatedMarkets:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       
       success(`Bet placed successfully!`);
     },

@@ -120,6 +120,9 @@ export async function getMarkets(filters?: {
     });
 
     console.log('[getMarkets] Query successful, found', markets.length, 'markets');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/49efe74e-58fa-4301-bd61-e7414a2ae428',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/market.ts:122',message:'getMarkets returning markets',data:{marketCount:markets.length,firstMarketHasProbability:markets[0]?.probabilityYes!==undefined,firstMarketShares:markets[0]?{sharesYes:markets[0].sharesYes,sharesNo:markets[0].sharesNo}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     return markets;
   } catch (error) {
     console.error('[getMarkets] Database query failed:', error);
