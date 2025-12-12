@@ -72,6 +72,7 @@ export function useBet() {
       queryClient.invalidateQueries({ queryKey: ['markets'], exact: false }); // Match all ['markets', ...] queries
       queryClient.invalidateQueries({ queryKey: ['user-balance'] });
       queryClient.invalidateQueries({ queryKey: ['bets', variables.marketId] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] }); // Update portfolio stats (totalInvested changes)
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/49efe74e-58fa-4301-bd61-e7414a2ae428',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'hooks/use-bet.ts:74',message:'Bet success - after invalidation',data:{marketId:variables.marketId,invalidatedMarkets:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
       // #endregion

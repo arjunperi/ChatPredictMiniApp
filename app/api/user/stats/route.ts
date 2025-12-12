@@ -3,7 +3,7 @@ import { requireTelegramAuth } from '@/lib/telegram/middleware';
 import { getOrCreateUser } from '@/lib/tokens';
 import { handleError } from '@/lib/errors/handlers';
 import { prisma } from '@/lib/db/prisma';
-import { MarketStatus } from '@prisma/client';
+import { MarketStatus, TransactionType } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,10 +50,20 @@ export async function GET(request: NextRequest) {
     // Calculate total invested: sum of all bet amounts
     const totalInvested = bets.reduce((sum, bet) => sum + bet.amount, 0);
     
-    // TODO: Calculate totalReturns and netPL from resolved markets
-    // For now, these are placeholders
-    const totalReturns = 0;
-    const netPL = 0;
+    // Calculate totalReturns from BET_WON transactions (payouts from resolved markets)
+    const wonTransactions = await prisma.transaction.findMany({
+      where: {
+        userId: user.id,
+        type: TransactionType.BET_WON,
+      },
+      select: {
+        amount: true,
+      },
+    });
+    const totalReturns = wonTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    
+    // Calculate netPL (profit/loss from resolved markets)
+    const netPL = totalReturns - totalInvested;
     
     const stats = {
       balance: user.tokenBalance,

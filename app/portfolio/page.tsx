@@ -96,6 +96,28 @@ export default function PortfolioPage() {
     enabled: isTelegramAvailable, // Only fetch in Telegram context
   });
 
+  // Add separate balance query using same key as navigation/market detail pages
+  // This ensures portfolio balance stays in sync with other balance displays
+  const { data: balanceData } = useQuery({
+    queryKey: ['user-balance'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/balance', {
+          headers: getTelegramAuthHeaders(),
+        });
+        if (!response.ok) {
+          return { balance: 0 };
+        }
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('[Portfolio] Error fetching balance:', error);
+        return { balance: 0 };
+      }
+    },
+    enabled: isTelegramAvailable,
+  });
+
   const { data: markets } = useMarkets();
   const { data: bets } = useBets();
 
@@ -114,7 +136,7 @@ export default function PortfolioPage() {
       </div>
 
       <PortfolioSummary
-        balance={portfolioData?.balance || 0}
+        balance={balanceData?.balance ?? portfolioData?.balance ?? 0}
         activePositions={portfolioData?.activePositions || 0}
         totalInvested={portfolioData?.totalInvested || 0}
         totalReturns={portfolioData?.totalReturns || 0}
