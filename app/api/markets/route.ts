@@ -31,10 +31,6 @@ export async function GET(request: NextRequest) {
       };
     });
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/49efe74e-58fa-4301-bd61-e7414a2ae428',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/markets/route.ts:29',message:'Markets API after probability calculation',data:{marketCount:marketsWithProbability.length,firstMarketHasProbability:marketsWithProbability[0]?.probabilityYes!==undefined,firstMarketProbability:marketsWithProbability[0]?.probabilityYes,firstMarketShares:marketsWithProbability[0]?{sharesYes:marketsWithProbability[0].sharesYes,sharesNo:marketsWithProbability[0].sharesNo}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     return NextResponse.json({ markets: marketsWithProbability });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
